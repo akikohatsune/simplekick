@@ -56,3 +56,4 @@ python bot.py
 - Update check uses the latest GitHub release.
 - Python 3.13 is supported; voice audio features require `audioop-lts` or Python 3.12.
 - `.env` is loaded automatically on startup.
+- On startup, the bot will auto-disconnect members who are already self-deaf.

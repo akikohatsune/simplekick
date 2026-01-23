@@ -88,6 +88,9 @@ class SimpleKickBot(commands.Bot):
     async def on_ready(self) -> None:
         logger.info("Logged in as %s (%s)", self.user, self.user.id if self.user else "unknown")
         await self._sync_commands()
+        cog = self.get_cog("VoiceKickCog")
+        if cog and hasattr(cog, "scan_voice_states"):
+            await cog.scan_voice_states()
 
     async def _sync_commands(self) -> None:
         try:
