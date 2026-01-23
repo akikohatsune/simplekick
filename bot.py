@@ -1,6 +1,42 @@
 import asyncio
 import logging
 import os
+import sys
+import types
+
+if sys.version_info >= (3, 13):
+    try:
+        import audioop  # noqa: F401
+    except ModuleNotFoundError:
+        audioop = types.ModuleType("audioop")
+
+        def _unsupported(*_args: object, **_kwargs: object) -> None:
+            raise RuntimeError(
+                "audioop is not available on Python 3.13. "
+                "Install audioop-lts or use Python 3.12 if you need voice audio."
+            )
+
+        for _name in (
+            "ratecv",
+            "tomono",
+            "tostereo",
+            "add",
+            "bias",
+            "mul",
+            "max",
+            "minmax",
+            "avg",
+            "rms",
+            "findfit",
+            "findfactor",
+            "reverse",
+            "lin2lin",
+            "adpcm2lin",
+            "lin2adpcm",
+            "getsample",
+        ):
+            setattr(audioop, _name, _unsupported)
+        sys.modules["audioop"] = audioop
 
 import discord
 from discord.ext import commands
