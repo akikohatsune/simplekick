@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```bash
 export DISCORD_TOKEN="your_bot_token"
 export OWNER_ID="your_user_id" # optional, avoids owner lookup
-export GITHUB_REPO="owner/repo" # optional, check updates on startup
+export GITHUB_REPO="akikohatsune/simplekick" # optional, check updates on startup
 export GUILD_ID="your_guild_id" # optional, faster slash command sync
 export DB_PATH="blacklist.db"   # optional
 ```
@@ -52,4 +52,5 @@ python bot.py
 
 - If `GUILD_ID` is not set, global slash command sync can take up to 1 hour.
 - `/setup` can only be used once per bot session; restart to change it.
-- Set `GITHUB_REPO` to enable update checks on startup.
+- Set `GITHUB_REPO` to override the default update repository.
+- Update check uses the latest GitHub release.

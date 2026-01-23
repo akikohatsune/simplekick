@@ -16,7 +16,7 @@ if not TOKEN:
 DB_PATH = os.getenv("DB_PATH", "blacklist.db")
 SYNC_GUILD_ID = os.getenv("GUILD_ID") or os.getenv("SYNC_GUILD_ID")
 OWNER_ID = os.getenv("OWNER_ID")
-GITHUB_REPO = os.getenv("GITHUB_REPO")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "akikohatsune/simplekick")
 CURRENT_VERSION = "0.2.0"
 
 logging.basicConfig(

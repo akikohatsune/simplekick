@@ -51,18 +51,6 @@ def _fetch_latest_release(owner: str, repo: str) -> tuple[str, str] | None:
     return tag, html_url
 
 
-def _fetch_latest_tag(owner: str, repo: str) -> tuple[str, str] | None:
-    url = f"https://api.github.com/repos/{owner}/{repo}/tags?per_page=1"
-    data = _request_json(url)
-    if not isinstance(data, list) or not data:
-        return None
-    tag = data[0].get("name")
-    html_url = data[0].get("commit", {}).get("url", "")
-    if not tag:
-        return None
-    return tag, html_url
-
-
 def check_for_updates(current_version: str, repo: str, logger: logging.Logger) -> None:
     parsed = _parse_repo(repo)
     if not parsed:
@@ -73,9 +61,7 @@ def check_for_updates(current_version: str, repo: str, logger: logging.Logger) -
     try:
         latest = _fetch_latest_release(owner, name)
         if not latest:
-            latest = _fetch_latest_tag(owner, name)
-        if not latest:
-            logger.info("No releases or tags found for %s/%s.", owner, name)
+            logger.info("No releases found for %s/%s.", owner, name)
             return
     except Exception:
         logger.exception("Failed to check updates from GitHub.")
