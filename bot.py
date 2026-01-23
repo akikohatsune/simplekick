@@ -40,9 +40,13 @@ if sys.version_info >= (3, 13):
 
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
 
 from db import Database
 from update_checker import check_for_updates
+
+
+load_dotenv()
 
 
 TOKEN = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")

@@ -55,3 +55,4 @@ python bot.py
 - Set `GITHUB_REPO` to override the default update repository.
 - Update check uses the latest GitHub release.
 - Python 3.13 is supported; voice audio features require `audioop-lts` or Python 3.12.
+- `.env` is loaded automatically on startup.
