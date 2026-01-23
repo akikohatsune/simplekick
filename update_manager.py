@@ -33,7 +33,17 @@ def _is_dirty(cwd: str, logger: logging.Logger) -> bool:
     if result.returncode != 0:
         logger.warning("Failed to check git status; auto-update skipped.")
         return True
-    return bool(result.stdout.strip())
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    tracked_changes = [line for line in lines if not line.startswith("?? ")]
+    if tracked_changes:
+        logger.warning(
+            "Working tree has tracked changes; auto-update skipped. Changes: %s",
+            " | ".join(tracked_changes),
+        )
+        return True
+    if lines:
+        logger.info("Untracked files present; proceeding with auto-update.")
+    return False
 
 
 def _checkout_tag(tag: str, cwd: str, logger: logging.Logger) -> bool:
