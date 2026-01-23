@@ -39,8 +39,8 @@ python bot.py
 
 ## Slash Commands
 
-- `/blacklist add user reason` - exempt a user from auto-disconnect (owner-only)
-- `/blacklist remove user` - remove exemption (owner-only)
+- `/blacklist add user_id reason` - exempt a user from auto-disconnect (owner-only)
+- `/blacklist remove user_id` - remove exemption (owner-only)
 - `/blacklist list` - list exemptions (owner-only)
 - `/exempt request seconds reason` - ask owner for a temporary exemption (DM to owner)
 - `/exempt grant user seconds reason` - grant temporary exemption (owner-only, DM user)

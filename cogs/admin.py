@@ -10,6 +10,17 @@ from discord.ext import commands
 logger = logging.getLogger("simplekick.admin")
 
 
+def _parse_user_id(raw: str) -> int | None:
+    value = raw.strip()
+    if value.startswith("<@") and value.endswith(">"):
+        value = value[2:-1]
+        if value.startswith("!"):
+            value = value[1:]
+    if not value.isdigit():
+        return None
+    return int(value)
+
+
 def owner_only():
     async def predicate(interaction: discord.Interaction) -> bool:
         return await interaction.client.is_owner(interaction.user)
@@ -70,32 +81,47 @@ class AdminCog(commands.Cog):
 
     @blacklist.command(name="add", description="Exempt a user from auto-disconnect.")
     @app_commands.guild_only()
-    @app_commands.describe(user="User to exempt", reason="Optional reason")
+    @app_commands.describe(user_id="User ID or mention", reason="Optional reason")
     @owner_only()
     async def blacklist_add(
         self,
         interaction: discord.Interaction,
-        user: discord.Member,
+        user_id: str,
         reason: str | None = None,
     ) -> None:
-        self.bot.db.add_blacklist(interaction.guild.id, user.id, interaction.user.id, reason)
+        target_id = _parse_user_id(user_id)
+        if not target_id:
+            await interaction.response.send_message(
+                "Invalid user ID. Provide a numeric ID or mention.",
+                ephemeral=True,
+            )
+            return
+        self.bot.db.add_blacklist(interaction.guild.id, target_id, interaction.user.id, reason)
         await interaction.response.send_message(
-            f"Added {user.mention} to the blacklist.",
+            f"Added <@{target_id}> to the blacklist.",
             ephemeral=True,
         )
 
     @blacklist.command(name="remove", description="Remove a user from the blacklist.")
     @app_commands.guild_only()
-    @app_commands.describe(user="User to remove")
+    @app_commands.describe(user_id="User ID or mention")
     @owner_only()
     async def blacklist_remove(
-        self, interaction: discord.Interaction, user: discord.Member
+        self, interaction: discord.Interaction, user_id: str
     ) -> None:
-        removed = self.bot.db.remove_blacklist(interaction.guild.id, user.id)
+        target_id = _parse_user_id(user_id)
+        if not target_id:
+            await interaction.response.send_message(
+                "Invalid user ID. Provide a numeric ID or mention.",
+                ephemeral=True,
+            )
+            return
+        removed = self.bot.db.remove_blacklist(interaction.guild.id, target_id)
+        mention = f"<@{target_id}>"
         message = (
-            f"Removed {user.mention} from the blacklist."
+            f"Removed {mention} from the blacklist."
             if removed
-            else f"{user.mention} is not in the blacklist."
+            else f"{mention} is not in the blacklist."
         )
         await interaction.response.send_message(message, ephemeral=True)
 
