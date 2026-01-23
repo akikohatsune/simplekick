@@ -28,21 +28,6 @@ def owner_only():
     return app_commands.check(predicate)
 
 
-def access_allowed():
-    async def predicate(interaction: discord.Interaction) -> bool:
-        bot = interaction.client
-        if await bot.is_owner(interaction.user):
-            return True
-        allowed_role_id = getattr(bot, "allowed_role_id", None)
-        if allowed_role_id is None:
-            return True
-        if not isinstance(interaction.user, discord.Member):
-            return False
-        return any(role.id == allowed_role_id for role in interaction.user.roles)
-
-    return app_commands.check(predicate)
-
-
 class AdminCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -154,7 +139,6 @@ class AdminCog(commands.Cog):
     @exempt.command(name="request", description="Request a temporary exemption.")
     @app_commands.guild_only()
     @app_commands.describe(seconds="How long to exempt (seconds)", reason="Optional reason")
-    @access_allowed()
     async def exempt_request(
         self,
         interaction: discord.Interaction,
@@ -260,40 +244,57 @@ class AdminCog(commands.Cog):
     ) -> None:
         await interaction.response.defer(ephemeral=True)
         try:
+            synced_global = await self.bot.tree.sync()
             if guild_id:
                 guild = discord.Object(id=int(guild_id))
                 self.bot.tree.copy_global_to(guild=guild)
-                synced = await self.bot.tree.sync(guild=guild)
+                synced_guild = await self.bot.tree.sync(guild=guild)
+                await interaction.followup.send(
+                    f"Synced {len(synced_global)} global and {len(synced_guild)} guild commands.",
+                    ephemeral=True,
+                )
             else:
-                synced = await self.bot.tree.sync()
-            await interaction.followup.send(f"Synced {len(synced)} commands.", ephemeral=True)
+                await interaction.followup.send(
+                    f"Synced {len(synced_global)} global commands.",
+                    ephemeral=True,
+                )
         except ValueError:
             await interaction.followup.send("Invalid guild_id.", ephemeral=True)
         except Exception:
             logger.exception("Failed to sync commands")
             await interaction.followup.send("Sync failed. Check logs.", ephemeral=True)
 
-    @app_commands.command(name="setup", description="Set the role allowed to use the bot (one-time).")
-    @app_commands.guild_only()
-    @app_commands.describe(role="Role that can use the bot")
-    @owner_only()
-    async def setup_access(
-        self, interaction: discord.Interaction, role: discord.Role
-    ) -> None:
-        if getattr(self.bot, "setup_locked", False):
-            await interaction.response.send_message(
-                "Setup already configured. Restart the bot to change it.",
-                ephemeral=True,
-            )
-            return
+    @commands.command(name="sync")
+    @commands.is_owner()
+    async def sync_prefix(self, ctx: commands.Context, guild_id: str | None = None) -> None:
+        try:
+            synced_global = await self.bot.tree.sync()
+            if guild_id:
+                guild = discord.Object(id=int(guild_id))
+                self.bot.tree.copy_global_to(guild=guild)
+                synced_guild = await self.bot.tree.sync(guild=guild)
+                await ctx.reply(
+                    f"Synced {len(synced_global)} global and {len(synced_guild)} guild commands."
+                )
+            else:
+                await ctx.reply(f"Synced {len(synced_global)} global commands.")
+        except ValueError:
+            await ctx.reply("Invalid guild_id.")
+        except Exception:
+            logger.exception("Failed to sync commands")
+            await ctx.reply("Sync failed. Check logs.")
 
-        self.bot.allowed_role_id = role.id
-        self.bot.setup_locked = True
-        await interaction.response.send_message(
-            f"Access role set to {role.mention}.",
-            ephemeral=True,
-        )
-
+    @commands.command(name="update")
+    @commands.is_owner()
+    async def update_prefix(self, ctx: commands.Context) -> None:
+        await ctx.reply("Checking for updates...")
+        result = await self.bot._check_updates(force=True)
+        if result == "no_update":
+            await ctx.reply("No updates available.")
+        elif result == "auto_disabled":
+            await ctx.reply("Update available but AUTO_UPDATE is disabled.")
+        elif result == "update_failed":
+            await ctx.reply("Update failed. Check logs.")
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(AdminCog(bot))

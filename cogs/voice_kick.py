@@ -11,6 +11,17 @@ class VoiceKickCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _notify_user(self, member: discord.Member) -> None:
+        try:
+            await member.send(
+                "You were disconnected because you self-deafened in a voice channel. "
+                "Please undeafen before rejoining. If you need time, use /exempt request."
+            )
+        except discord.Forbidden:
+            return
+        except discord.HTTPException:
+            logger.exception("Failed to DM %s (%s)", member, member.id)
+
     def _get_guild_me(self, guild: discord.Guild) -> discord.Member | None:
         guild_me = guild.me or (guild.get_member(self.bot.user.id) if self.bot.user else None)
         if not guild_me or not guild_me.guild_permissions.move_members:
@@ -35,6 +46,7 @@ class VoiceKickCog(commands.Cog):
         try:
             await member.move_to(None, reason=reason)
             logger.info("Disconnected %s (%s) for self-deaf", member, member.id)
+            await self._notify_user(member)
         except discord.Forbidden:
             logger.warning("Forbidden to disconnect %s (%s)", member, member.id)
         except discord.HTTPException:
