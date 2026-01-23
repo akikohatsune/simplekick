@@ -10,14 +10,14 @@ from discord.ext import commands
 logger = logging.getLogger("simplekick.admin")
 
 
-def owner_only() -> app_commands.Check:
+def owner_only():
     async def predicate(interaction: discord.Interaction) -> bool:
         return await interaction.client.is_owner(interaction.user)
 
     return app_commands.check(predicate)
 
 
-def access_allowed() -> app_commands.Check:
+def access_allowed():
     async def predicate(interaction: discord.Interaction) -> bool:
         bot = interaction.client
         if await bot.is_owner(interaction.user):
