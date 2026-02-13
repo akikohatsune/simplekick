@@ -284,17 +284,5 @@ class AdminCog(commands.Cog):
             logger.exception("Failed to sync commands")
             await ctx.reply("Sync failed. Check logs.")
 
-    @commands.command(name="update")
-    @commands.is_owner()
-    async def update_prefix(self, ctx: commands.Context) -> None:
-        await ctx.reply("Checking for updates...")
-        result = await self.bot._check_updates(force=True)
-        if result == "no_update":
-            await ctx.reply("No updates available.")
-        elif result == "auto_disabled":
-            await ctx.reply("Update available but AUTO_UPDATE is disabled.")
-        elif result == "update_failed":
-            await ctx.reply("Update failed. Check logs.")
-
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(AdminCog(bot))
