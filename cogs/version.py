@@ -13,6 +13,17 @@ from discord.ext import commands
 logger = logging.getLogger("simplekick.version")
 
 
+def _base_embed(bot_version: str) -> discord.Embed:
+    embed = discord.Embed(title="Version", color=discord.Color.blurple())
+    embed.add_field(name="Bot Version", value=f"`{bot_version}`", inline=True)
+    return embed
+
+
+def _set_status(embed: discord.Embed, status: str, color: discord.Colour) -> None:
+    embed.add_field(name="Status", value=status, inline=False)
+    embed.color = color
+
+
 def _parse_repo(repo: str) -> tuple[str, str] | None:
     value = (repo or "").strip()
     if "/" not in value:
@@ -89,6 +100,16 @@ def _fetch_latest_release(repo: str) -> tuple[str, str] | None:
     return tag, html_url
 
 
+def _status_from_comparison(comparison: int | None) -> tuple[str, discord.Colour]:
+    if comparison is None:
+        return "Cannot compare version format.", discord.Color.light_grey()
+    if comparison < 0:
+        return "Update available.", discord.Color.orange()
+    if comparison == 0:
+        return "Up to date.", discord.Color.green()
+    return "Local version is newer than latest release.", discord.Color.blue()
+
+
 class VersionCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -99,20 +120,17 @@ class VersionCog(commands.Cog):
 
         bot_version = str(getattr(self.bot, "bot_version", "unknown"))
         repo = str(getattr(self.bot, "github_repo", "")).strip()
-        embed = discord.Embed(title="Version", color=discord.Color.blurple())
-        embed.add_field(name="Bot Version", value=f"`{bot_version}`", inline=True)
+        embed = _base_embed(bot_version)
 
         if not repo:
             embed.add_field(name="GitHub Repo", value="Not configured", inline=True)
-            embed.add_field(name="Status", value="Cannot check latest release.", inline=False)
-            embed.color = discord.Color.light_grey()
+            _set_status(embed, "Cannot check latest release.", discord.Color.light_grey())
             await interaction.followup.send(embed=embed)
             return
 
+        embed.add_field(name="GitHub Repo", value=f"`{repo}`", inline=True)
         if not _parse_repo(repo):
-            embed.add_field(name="GitHub Repo", value=f"`{repo}`", inline=True)
-            embed.add_field(name="Status", value="Invalid repo format. Use `owner/repo`.", inline=False)
-            embed.color = discord.Color.red()
+            _set_status(embed, "Invalid repo format. Use `owner/repo`.", discord.Color.red())
             await interaction.followup.send(embed=embed)
             return
 
@@ -120,40 +138,22 @@ class VersionCog(commands.Cog):
             latest_info = await asyncio.to_thread(_fetch_latest_release, repo)
         except Exception:
             logger.exception("Failed to fetch release for %s", repo)
-            embed.add_field(name="GitHub Repo", value=f"`{repo}`", inline=True)
-            embed.add_field(name="Status", value="Failed to fetch latest release.", inline=False)
-            embed.color = discord.Color.red()
+            _set_status(embed, "Failed to fetch latest release.", discord.Color.red())
             await interaction.followup.send(embed=embed)
             return
 
         if not latest_info:
-            embed.add_field(name="GitHub Repo", value=f"`{repo}`", inline=True)
-            embed.add_field(name="Status", value="No release found.", inline=False)
-            embed.color = discord.Color.light_grey()
+            _set_status(embed, "No release found.", discord.Color.light_grey())
             await interaction.followup.send(embed=embed)
             return
 
         latest_tag, release_url = latest_info
-        embed.add_field(name="GitHub Repo", value=f"`{repo}`", inline=True)
         embed.add_field(name="Latest Release", value=f"`{latest_tag}`", inline=True)
         if release_url:
             embed.add_field(name="Release URL", value=f"[Open release]({release_url})", inline=False)
 
-        comparison = _compare_versions(bot_version, latest_tag)
-        if comparison is None:
-            status = "Cannot compare version format."
-            embed.color = discord.Color.light_grey()
-        elif comparison < 0:
-            status = "Update available."
-            embed.color = discord.Color.orange()
-        elif comparison == 0:
-            status = "Up to date."
-            embed.color = discord.Color.green()
-        else:
-            status = "Local version is newer than latest release."
-            embed.color = discord.Color.blue()
-
-        embed.add_field(name="Status", value=status, inline=False)
+        status, color = _status_from_comparison(_compare_versions(bot_version, latest_tag))
+        _set_status(embed, status, color)
         await interaction.followup.send(embed=embed)
 
 

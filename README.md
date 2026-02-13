@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```bash
 export DISCORD_TOKEN="your_bot_token"
 export OWNER_ID="your_user_id" # optional, avoids owner lookup
-export BOT_VERSION="1.2.0" # optional, local version label used by /ver
+export BOT_VERSION="1.3.4" # optional, local version label used by /ver
 export GITHUB_REPO="akikohatsune/simplekick" # optional, repo checked by /ver
 export GUILD_ID="your_guild_id" # optional, faster slash command sync
 export DB_PATH="blacklist.db"   # optional

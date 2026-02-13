@@ -32,6 +32,15 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _sync_tree(self, guild_id: str | None) -> str:
+        synced_global = await self.bot.tree.sync()
+        if not guild_id:
+            return f"Synced {len(synced_global)} global commands."
+        guild = discord.Object(id=int(guild_id))
+        self.bot.tree.copy_global_to(guild=guild)
+        synced_guild = await self.bot.tree.sync(guild=guild)
+        return f"Synced {len(synced_global)} global and {len(synced_guild)} guild commands."
+
     async def _get_owner_user(self) -> discord.User | None:
         if self.bot.owner_id:
             user = self.bot.get_user(self.bot.owner_id)
@@ -244,20 +253,8 @@ class AdminCog(commands.Cog):
     ) -> None:
         await interaction.response.defer(ephemeral=True)
         try:
-            synced_global = await self.bot.tree.sync()
-            if guild_id:
-                guild = discord.Object(id=int(guild_id))
-                self.bot.tree.copy_global_to(guild=guild)
-                synced_guild = await self.bot.tree.sync(guild=guild)
-                await interaction.followup.send(
-                    f"Synced {len(synced_global)} global and {len(synced_guild)} guild commands.",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.followup.send(
-                    f"Synced {len(synced_global)} global commands.",
-                    ephemeral=True,
-                )
+            message = await self._sync_tree(guild_id)
+            await interaction.followup.send(message, ephemeral=True)
         except ValueError:
             await interaction.followup.send("Invalid guild_id.", ephemeral=True)
         except Exception:
@@ -268,16 +265,8 @@ class AdminCog(commands.Cog):
     @commands.is_owner()
     async def sync_prefix(self, ctx: commands.Context, guild_id: str | None = None) -> None:
         try:
-            synced_global = await self.bot.tree.sync()
-            if guild_id:
-                guild = discord.Object(id=int(guild_id))
-                self.bot.tree.copy_global_to(guild=guild)
-                synced_guild = await self.bot.tree.sync(guild=guild)
-                await ctx.reply(
-                    f"Synced {len(synced_global)} global and {len(synced_guild)} guild commands."
-                )
-            else:
-                await ctx.reply(f"Synced {len(synced_global)} global commands.")
+            message = await self._sync_tree(guild_id)
+            await ctx.reply(message)
         except ValueError:
             await ctx.reply("Invalid guild_id.")
         except Exception:

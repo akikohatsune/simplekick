@@ -7,6 +7,14 @@ from discord.ext import commands
 
 
 logger = logging.getLogger("simplekick.voice")
+DM_DISCONNECT_NOTICE = (
+    "You were disconnected because you self-deafened in a voice channel. "
+    "Please undeafen before rejoining. If you need time, use /exempt request."
+)
+REASON_EVENT = "Auto-disconnect: self-deaf in voice channel"
+REASON_VERIFY = "Auto-disconnect: self-deaf verification pass"
+REASON_SWEEP = "Auto-disconnect: periodic guard sweep"
+REASON_STARTUP = "Auto-disconnect: self-deaf on startup"
 
 
 def _parse_bool(raw: str | None, default: bool) -> bool:
@@ -107,9 +115,7 @@ class VoiceKickCog(commands.Cog):
                 member = self._get_member(guild_id, member_id)
                 if not member:
                     return
-                await self._maybe_disconnect(
-                    member, "Auto-disconnect: self-deaf verification pass"
-                )
+                await self._maybe_disconnect(member, REASON_VERIFY)
                 if not member.voice or not member.voice.channel or not member.voice.self_deaf:
                     return
         except asyncio.CancelledError:
@@ -122,7 +128,7 @@ class VoiceKickCog(commands.Cog):
             await self.bot.wait_until_ready()
             while True:
                 await asyncio.sleep(self._guard_interval_seconds)
-                await self.scan_voice_states(reason="Auto-disconnect: periodic guard sweep")
+                await self.scan_voice_states(reason=REASON_SWEEP)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -130,10 +136,7 @@ class VoiceKickCog(commands.Cog):
 
     async def _notify_user(self, member: discord.Member) -> None:
         try:
-            await member.send(
-                "You were disconnected because you self-deafened in a voice channel. "
-                "Please undeafen before rejoining. If you need time, use /exempt request."
-            )
+            await member.send(DM_DISCONNECT_NOTICE)
         except discord.Forbidden:
             return
         except discord.HTTPException:
@@ -146,18 +149,23 @@ class VoiceKickCog(commands.Cog):
             return None
         return guild_me
 
-    async def _maybe_disconnect(self, member: discord.Member, reason: str) -> None:
+    def _can_disconnect(self, member: discord.Member) -> bool:
         if member.bot:
-            return
+            return False
         if not member.voice or not member.voice.channel:
-            return
+            return False
         if not member.voice.self_deaf:
-            return
+            return False
         if self.bot.db.is_blacklisted(member.guild.id, member.id):
-            return
+            return False
         if self.bot.db.is_temp_exempt(member.guild.id, member.id):
-            return
+            return False
         if not self._get_guild_me(member.guild):
+            return False
+        return True
+
+    async def _maybe_disconnect(self, member: discord.Member, reason: str) -> None:
+        if not self._can_disconnect(member):
             return
 
         try:
@@ -179,10 +187,10 @@ class VoiceKickCog(commands.Cog):
             return
         if before.self_deaf and before.channel == after.channel:
             return
-        await self._maybe_disconnect(member, "Auto-disconnect: self-deaf in voice channel")
+        await self._maybe_disconnect(member, REASON_EVENT)
         self._schedule_verify(member.guild.id, member.id)
 
-    async def scan_voice_states(self, reason: str = "Auto-disconnect: self-deaf on startup") -> None:
+    async def scan_voice_states(self, reason: str = REASON_STARTUP) -> None:
         for guild in self.bot.guilds:
             if not self._get_guild_me(guild):
                 continue
