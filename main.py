@@ -67,7 +67,12 @@ OWNER_ID = os.getenv("OWNER_ID")
 BOT_VERSION = os.getenv("BOT_VERSION", "1.3.4")
 GITHUB_REPO = os.getenv("GITHUB_REPO", "akikohatsune/simplekick")
 PRESENCE_TEXT = os.getenv("PRESENCE_TEXT", "Auto-disconnect self-deafen")
-EXTENSIONS: Sequence[str] = ("cogs.voice_kick", "cogs.admin", "cogs.version")
+EXTENSIONS: Sequence[str] = (
+    "cogs.voice_kick",
+    "cogs.admin",
+    "cogs.vote_mute",
+    "cogs.version",
+)
 
 logging.basicConfig(
     level=logging.INFO,

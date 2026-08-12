@@ -5,12 +5,12 @@
 
 <h1 align="center">simplekick</h1>
 
-Discord bot auto-disconnects members who self-deafen in a voice channel. Includes owner-only blacklist commands and temporary exemption requests.
+Discord bot auto-disconnects members who self-deafen in a voice channel. Includes owner-only blacklist commands, temporary exemption requests, and persistent community votes for timed server mutes.
 
 ## Requirements
 
 - Python 3.10+
-- A Discord bot with `Move Members` permission
+- A Discord bot with `Move Members` and `Mute Members` permissions
 - Enable "Server Members Intent" in the Developer Portal
 
 ## Setup
@@ -34,6 +34,7 @@ export PRESENCE_TEXT="Auto-disconnect self-deafen" # optional, bot status
 export VOICE_ENHANCED_GUARD="1" # optional, extra guard algorithm layer
 export VOICE_GUARD_INTERVAL_SECONDS="45" # optional, periodic sweep interval
 export VOICE_VERIFY_DELAYS_SECONDS="2,5" # optional, delayed verification passes
+export VOTE_MUTE_POLL_SECONDS="600" # optional, voting window (60-86400 seconds)
 ```
 
 3. Run the bot:
@@ -50,6 +51,8 @@ python main.py
 - `/exempt request seconds reason` - ask owner for a temporary exemption (DM to owner)
 - `/exempt grant user seconds reason` - grant temporary exemption (owner-only, DM user)
 - `/exempt deny user reason` - deny exemption request (owner-only, DM user)
+- `/votemute start user days reason` - owner opens a timed server-mute vote (1-365 days)
+- `/votemute force-unmute user reason` - owner immediately clears the saved mute, unmutes the member, and cancels their open vote
 - `/ver` - show local bot version and latest GitHub release
 - `/sync [guild_id]` - sync global commands (and guild if provided) (owner-only)
 - `!sync [guild_id]` - sync global commands (and guild if provided) (owner-only, prefix)
@@ -63,3 +66,5 @@ python main.py
 - Set `PRESENCE_TEXT` to show a custom Discord presence.
 - Set `GITHUB_REPO` as `owner/repo` to let `/ver` query latest release.
 - Enhanced voice guard keeps base algorithm and adds retry/sweep checks.
+- A vote passes when it reaches `ceil(30% × eligible human members)`. Bots and the target are excluded, and each member gets one vote.
+- Vote sessions last 10 minutes by default. Passed mutes survive bot restarts, are re-applied when the target rejoins voice, and expire automatically.
