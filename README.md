@@ -51,7 +51,7 @@ python main.py
 - `/exempt request seconds reason` - ask owner for a temporary exemption (DM to owner)
 - `/exempt grant user seconds reason` - grant temporary exemption (owner-only, DM user)
 - `/exempt deny user reason` - deny exemption request (owner-only, DM user)
-- `/votemute start user days reason` - owner opens a timed server-mute vote (1-365 days)
+- `/votemute start user days votes_needed reason` - owner opens a timed server-mute vote; `votes_needed` sets an exact threshold or defaults to 30%
 - `/votemute force-unmute user reason` - owner immediately clears the saved mute, unmutes the member, and cancels their open vote
 - `/ver` - show local bot version and latest GitHub release
 - `/sync [guild_id]` - sync global commands (and guild if provided) (owner-only)
@@ -66,5 +66,5 @@ python main.py
 - Set `PRESENCE_TEXT` to show a custom Discord presence.
 - Set `GITHUB_REPO` as `owner/repo` to let `/ver` query latest release.
 - Enhanced voice guard keeps base algorithm and adds retry/sweep checks.
-- A vote passes when it reaches `ceil(30% × eligible human members)`. Bots and the target are excluded, and each member gets one vote.
+- A vote normally passes at `ceil(30% × eligible human members)`, or at the exact `votes_needed` selected by the owner. Bots and the target are excluded, and each member gets one vote.
 - Vote sessions last 10 minutes by default. Passed mutes survive bot restarts, are re-applied when the target rejoins voice, and expire automatically.

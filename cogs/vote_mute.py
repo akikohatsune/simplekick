@@ -134,7 +134,14 @@ class VoteMuteCog(commands.Cog):
             name="Votes",
             value=(
                 f"**{poll.vote_count}/{poll.required_votes}** needed to pass\n"
-                f"30% of {poll.eligible_voters} eligible member(s)"
+                + (
+                    f"30% of {poll.eligible_voters} eligible member(s)"
+                    if poll.required_votes == _required_votes(poll.eligible_voters)
+                    else (
+                        f"Custom owner threshold: {poll.required_votes} of "
+                        f"{poll.eligible_voters} eligible member(s)"
+                    )
+                )
             ),
             inline=False,
         )
@@ -296,6 +303,7 @@ class VoteMuteCog(commands.Cog):
     @app_commands.describe(
         user="Member to server-mute",
         days="Mute duration in days (chosen by OWNER_ID)",
+        votes_needed="Exact votes needed; leave empty to use 30%",
         reason="Optional reason shown in the poll",
     )
     @owner_only()
@@ -304,6 +312,7 @@ class VoteMuteCog(commands.Cog):
         interaction: discord.Interaction,
         user: discord.Member,
         days: app_commands.Range[int, 1, MAX_MUTE_DAYS],
+        votes_needed: app_commands.Range[int, 1, 1000000] | None = None,
         reason: str | None = None,
     ) -> None:
         await interaction.response.defer()
@@ -346,7 +355,16 @@ class VoteMuteCog(commands.Cog):
                 "There are no eligible voters in this server.", ephemeral=True
             )
             return
-        required = _required_votes(eligible_voters)
+        if votes_needed is not None and votes_needed > eligible_voters:
+            await interaction.followup.send(
+                (
+                    f"`votes_needed` cannot exceed the {eligible_voters} eligible "
+                    "member(s) in this server."
+                ),
+                ephemeral=True,
+            )
+            return
+        required = votes_needed or _required_votes(eligible_voters)
         now = int(time.time())
         for expired_poll_id in self.bot.db.expire_voice_mute_polls(now):
             await self._edit_poll_message(expired_poll_id)
